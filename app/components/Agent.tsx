@@ -60,11 +60,14 @@ const Agent = ({ userName, userId, type }: AgentProps) => {
   }, []);
 
   useEffect(() => {
-    if (callStatus === CallStatus.FINISHED) router.push("/");
-  }, [messages, callStatus, type, userId]);
+    if (callStatus === CallStatus.FINISHED) {
+      if (type === "generate") {
+        router.push("/");
+      }
+    }
+  }, [messages, callStatus, router, type, userId]);
 
   const handleCall = async () => {
-    console.log("VAPI Workflow ID:", process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID);
     setCallStatus(CallStatus.CONNECTING);
     await vapi.start(process.env.NEXT_PUBLIC_VAPI_WORKFLOW_ID!, {
       variableValues: {
