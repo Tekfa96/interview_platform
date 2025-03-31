@@ -1,5 +1,6 @@
 "use client";
 import { interviewer } from "@/constants";
+import { createFeedback } from "@/lib/actions/general.action";
 import { cn } from "@/lib/utils";
 import { vapi } from "@/lib/vapi.sdk";
 import Image from "next/image";
@@ -18,7 +19,7 @@ interface AgentProps {
   userId: string;
   type: string;
   interviewId: string;
-  questions: string;
+  questions: string[];
 }
 
 interface SavedMessage {
@@ -28,10 +29,10 @@ interface SavedMessage {
 
 const Agent = ({
   userName,
-  userId,
   type,
   interviewId,
   questions,
+  userId,
 }: AgentProps) => {
   const router = useRouter();
   const [isSpeaking, setIspeaking] = useState(false);
@@ -69,19 +70,34 @@ const Agent = ({
   }, []);
 
   const handleGenerateFeedback = async (messages: SavedMessage[]) => {
-    console.log("Generate feedback here.");
-    //TODO: create a server action that generates feedback
-    const { success, id } = {
-      success: true,
-      id: "feedback-id",
-    };
-    if (success && id) {
-      router.push(`/interview/${interviewId}/feedback`);
-    } else {
-      console.log("Error saving feedback");
+    console.log("Generating feedback...");
+    console.log(userName);
+    if (!interviewId || !userId) {
+      console.error("Error: Missing required data", { interviewId, userId });
+      return; // Prevent further execution
+    }
+
+    try {
+      const response = await createFeedback({
+        interviewId,
+        userId,
+        transcript: messages,
+      });
+
+      console.log("Feedback Response:", response);
+
+      if (response.success && response.feedbackId) {
+        router.push(`/interview/${interviewId}/feedback`);
+      } else {
+        console.error("Error saving feedback", response);
+        router.push("/");
+      }
+    } catch (error) {
+      console.error("Exception occurred:", error);
       router.push("/");
     }
   };
+
   useEffect(() => {
     if (callStatus === CallStatus.FINISHED) {
       if (type === "generate") {

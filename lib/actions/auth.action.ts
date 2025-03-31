@@ -1,6 +1,7 @@
 "use server";
 import { auth, db } from "@/firebase/admin";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 const ONE_WEEK = 60 * 60 * 24 * 7;
 
@@ -73,6 +74,20 @@ export async function setSessionCookie(idToken: string) {
   });
 }
 
+export async function signOut() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete("session");
+    redirect("/sign-in");
+  } catch (error) {
+    console.error("Error signing out:", error);
+    return {
+      success: false,
+      message: "Failed to sign out.",
+    };
+  }
+}
+
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get("session")?.value;
@@ -97,37 +112,6 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function isAuthenicated() {
   const user = await getCurrentUser();
   return !!user;
-}
-export async function getInterviewsByUserId(
-  userId: string
-): Promise<Interview[] | null> {
-  const interviews = await db
-    .collection("interviews")
-    .where("userId", "==", userId)
-    .orderBy("createdAt", "desc")
-    .get();
-
-  return interviews.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Interview[];
-}
-export async function getLatestInterviews(
-  params: GetLatestInterviewsParams
-): Promise<Interview[] | null> {
-  const { userId, limit = 20 } = params;
-  const interviews = await db
-    .collection("interviews")
-    .orderBy("createdAt", "desc")
-    .where("finalized", "==", true)
-    .where("userId", "!=", userId)
-    .limit(limit)
-    .get();
-
-  return interviews.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Interview[];
 }
 
 ///// STATIC VERSION////////////
